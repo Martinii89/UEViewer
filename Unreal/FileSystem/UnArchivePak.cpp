@@ -684,6 +684,7 @@ void FPakVFS::DecryptDataBlock(byte* Data, int DataSize)
 	guard(FPakVFS::DecryptDataBlock);
 
 	const FString& Key = GetPakEncryptionKey();
+	if (Key.Len() == 0) appError("Empty AES key");
 	appDecryptAES(Data, DataSize, &Key[0], Key.Len());
 
 	unguard;
@@ -762,7 +763,7 @@ bool FPakVFS::LoadPakIndexLegacy(FArchive* reader, const FPakInfo& info, FString
 		if (E.Size == 0)
 		{
 			// Happens with Jedi Fallen Order, seems assets are deleted in patches this way. If we'll continue registration,
-			// the existing (previous) asset might be overriden with zero-size file, and it won't be recognized as an asset anymore.
+			// the existing (previous) asset might be overridden with zero-size file, and it won't be recognized as an asset anymore.
 			continue;
 		}
 
@@ -953,8 +954,9 @@ bool FPakVFS::LoadPakIndex(FArchive* reader, const FPakInfo& info, FString& erro
 		DirectoryPath = MountPoint;
 		DirectoryPath += DirectoryName;
 		CompactFilePath(DirectoryPath);
-		if (DirectoryPath[DirectoryPath.Len()-1] == '/')
-			DirectoryPath.RemoveAt(DirectoryPath.Len()-1, 1);
+		// Remove any trailing slashes. Note that MountPoint may be empty (consisting just of '/'), so let's use a loop.
+		while (DirectoryPath[DirectoryPath.Len()-1] == '/')
+			DirectoryPath.RemoveAt(DirectoryPath.Len()-1);
 
 		// Read size of FPakDirectory (DirectoryIndex::Value)
 		int32 NumFilesInDirectory;
@@ -966,19 +968,25 @@ bool FPakVFS::LoadPakIndex(FArchive* reader, const FPakInfo& info, FString& erro
 			FolderIndex = RegisterGameFolder(*DirectoryPath);
 		}
 
-		for (int DirectoryFileIndex = 0; DirectoryFileIndex < NumFilesInDirectory; DirectoryFileIndex++)
+		for (int DirectoryFileIndex = 0; DirectoryFileIndex < NumFilesInDirectory; DirectoryFileIndex++, FileIndex++)
 		{
 			guard(File);
 			// Read FPakDirectory entry Key
 			FStaticString<MAX_PACKAGE_PATH> DirectoryFileName;
 			InfoReader << DirectoryFileName;
+
 			// Read FPakDirectory entry Value
+			// PakEntryLocation is positive (offset in 'EncodedPakEntries') or negative (index in 'Files').
 			int32 PakEntryLocation;
 			InfoReader << PakEntryLocation;
+			if (PakEntryLocation == 0x7fffffff || PakEntryLocation == 0x80000000)
+			{
+				// 0x7fffffff and 0x80000000 are special values, "Invalid" or "Unused"
+				continue;
+			}
 
 			FPakEntry& E = FileInfos[FileIndex];
 
-			// PakEntryLocation is positive (offset in 'EncodedPakEntries') or negative (index in 'Files')
 			// References in UE4:
 			// FPakFile::DecodePakEntry <- FPakFile::GetPakEntry (decode or pick from 'Files') <- FPakFile::Find (name to index/location)
 			if (PakEntryLocation < 0)
@@ -1011,7 +1019,6 @@ bool FPakVFS::LoadPakIndex(FArchive* reader, const FPakInfo& info, FString& erro
 			reg.IndexInArchive = FileIndex;
 			E.FileInfo = RegisterFile(reg);
 
-			FileIndex++;
 			unguard;
 		}
 		unguard;
