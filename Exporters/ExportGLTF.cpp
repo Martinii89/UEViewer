@@ -358,9 +358,9 @@ static void ExportSection(GLTFExportContext& Context, const CBaseMeshLod& Lod, c
 	CVec3 Mins, Maxs;
 	ComputeBounds((CVec3*)PositionBuf.Data, numLocalVerts, sizeof(CVec3), Mins, Maxs);
 	char buf[256];
-	appSprintf(ARRAY_ARG(buf), "[ %g, %g, %g ]", VECTOR_ARG(Mins));
+	appSprintf(ARRAY_ARG(buf), "[ %.10g, %.10g, %.10g ]", VECTOR_ARG(Mins));
 	PositionBuf.BoundsMin = buf;
-	appSprintf(ARRAY_ARG(buf), "[ %g, %g, %g ]", VECTOR_ARG(Maxs));
+	appSprintf(ARRAY_ARG(buf), "[ %.10g, %.10g, %.10g ]", VECTOR_ARG(Maxs));
 	PositionBuf.BoundsMax = buf;
 
 	if (Lod.VertexColors)
