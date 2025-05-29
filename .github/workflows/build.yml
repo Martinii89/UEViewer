@@ -15,17 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        build_type: [release, debug]
-        include:
-          - build_type: debug
-            debug_flag: "--debug"
-          - build_type: release
-            debug_flag: ""
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch all history for proper versioning
 
@@ -40,11 +33,11 @@ jobs:
         run: |
           # Make sure build script is executable
           chmod +x ./build.sh
-          ./build.sh ${{ matrix.debug_flag }}
+          ./build.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: umodel-linux-${{ matrix.build_type }}
+          name: umodel-linux
           path: umodel*
 
