@@ -1,0 +1,50 @@
+name: Build UEViewer
+
+on:
+  push:
+    branches: [ master, main ]
+    tags:
+      - 'v*'  # Push events to matching v*, i.e. v1.0, v20.15.10
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  build-linux:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [release, debug]
+        include:
+          - build_type: debug
+            debug_flag: "--debug"
+          - build_type: release
+            debug_flag: ""
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for proper versioning
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential g++ gcc-multilib g++-multilib \
+            mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libgtk-3-dev \
+            libsdl2-dev libsdl2-2.0-0
+
+      - name: Build UEViewer
+        run: |
+          # Make sure build script is executable
+          chmod +x ./build.sh
+          ./build.sh ${{ matrix.debug_flag }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: umodel-linux-${{ matrix.build_type }}
+          path: umodel*
+
