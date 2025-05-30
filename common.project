@@ -167,7 +167,7 @@ pop(INCLUDES)
 pop(DEFINES)
 
 # SDL2
-!include $R/libs/SDL2/SDL2.project
+# !include $R/libs/SDL2/SDL2.project
 
 # oodle SDK support
 !include $R/libs/oodle/oodle.project
